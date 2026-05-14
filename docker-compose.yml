@@ -1,0 +1,174 @@
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.9.3
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__WEBSERVER__SECRET_KEY: 'football_secret'
+    AIRFLOW__WEBSERVER__SESSION_BACKEND: 'securecookie'
+    # Connexion MinIO pour Spark
+    AWS_ACCESS_KEY_ID: minioadmin
+    AWS_SECRET_ACCESS_KEY: minioadmin
+    PYTHONPATH: /opt/airflow
+    _PIP_ADDITIONAL_REQUIREMENTS: 'boto3'
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./spark/jobs:/opt/airflow/spark_jobs
+    - ./data:/opt/airflow/data
+    - airflow_logs:/opt/airflow/logs
+    - /var/run/docker.sock:/var/run/docker.sock
+  depends_on:
+    postgres:
+      condition: service_healthy
+  networks:
+    - football_net
+
+services:
+
+  # ─────────────────────────────────────────
+  # POSTGRESQL — stockage Gold + Airflow meta
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:15
+    container_name: football_postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+    networks:
+      - football_net
+
+  # ─────────────────────────────────────────
+  # MINIO — stockage Bronze et Silver (S3)
+  # ─────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: football_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9002:9000"   # API S3
+      - "9003:9001"   # Interface web
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      retries: 5
+    networks:
+      - football_net
+
+  # ─────────────────────────────────────────
+  # SPARK MASTER
+  # ─────────────────────────────────────────
+  spark-master:
+    image: apache/spark:3.5.1-python3
+    container_name: football_spark_master
+    entrypoint: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
+    environment:
+      SPARK_MASTER_HOST: spark-master
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    volumes:
+      - ./spark/jobs:/opt/spark_jobs
+      - ./data:/opt/data
+    networks:
+      - football_net
+
+  # ─────────────────────────────────────────
+  # SPARK WORKER
+  # ─────────────────────────────────────────
+  spark-worker:
+    image: apache/spark:3.5.1-python3
+    container_name: football_spark_worker
+    entrypoint: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+    environment:
+      SPARK_WORKER_MEMORY: 2g
+      SPARK_WORKER_CORES: 2
+    volumes:
+      - ./spark/jobs:/opt/spark_jobs
+      - ./data:/opt/data
+    depends_on:
+      - spark-master
+    networks:
+      - football_net
+
+  # ─────────────────────────────────────────
+  # AIRFLOW — initialisation de la DB
+  # ─────────────────────────────────────────
+  airflow-init:
+    <<: *airflow-common
+    container_name: football_airflow_init
+    command: >
+      bash -c "airflow db migrate &&
+               airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@football.com"
+    restart: "no"
+
+  # ─────────────────────────────────────────
+  # AIRFLOW WEBSERVER
+  # ─────────────────────────────────────────
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: football_airflow_webserver
+    command: webserver
+    ports:
+      - "8081:8080"   # Interface web Airflow
+    depends_on:
+      - airflow-init
+    restart: always
+
+  # ─────────────────────────────────────────
+  # AIRFLOW SCHEDULER
+  # ─────────────────────────────────────────
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: football_airflow_scheduler
+    command: scheduler
+    depends_on:
+      - airflow-init
+    restart: always
+
+  # ─────────────────────────────────────────
+  # METABASE — visualisation
+  # ─────────────────────────────────────────
+  metabase:
+    image: metabase/metabase:latest
+    container_name: football_metabase
+    ports:
+      - "3000:3000"   # Interface web Metabase
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: airflow
+      MB_DB_PORT: 5432
+      MB_DB_USER: airflow
+      MB_DB_PASS: airflow
+      MB_DB_HOST: postgres
+    depends_on:
+      - postgres
+    networks:
+      - football_net
+
+# ─────────────────────────────────────────
+# VOLUMES & NETWORK
+# ─────────────────────────────────────────
+volumes:
+  postgres_data:
+  minio_data:
+  airflow_logs:
+
+networks:
+  football_net:
+    driver: bridge
