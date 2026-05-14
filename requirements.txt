@@ -1,0 +1,16 @@
+# ─────────────────────────────────────────
+# Requirements — Projet Football Data Engineering
+# ─────────────────────────────────────────
+# Installation dans le venv :
+#   python -m venv venv
+#   .\venv\Scripts\activate      (Windows)
+#   pip install -r requirements.txt
+
+# Upload vers MinIO
+boto3==1.34.0
+
+# Traitement de données (optionnel, pour scripts locaux)
+pandas==2.1.4
+
+# Connexion PostgreSQL (optionnel, pour vérifications locales)
+psycopg2-binary==2.9.9
