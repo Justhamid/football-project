@@ -1,0 +1,16 @@
+# Environnement virtuel
+venv/
+
+# Données brutes (trop lourdes)
+data/
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Variables d'environnement
+.env
+
+# Logs
+*.log
