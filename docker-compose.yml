@@ -76,7 +76,11 @@ services:
   spark-master:
     image: apache/spark:3.5.1-python3
     container_name: football_spark_master
-    entrypoint: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
+    user: root
+    entrypoint: >
+      bash -c "mkdir -p /home/spark/.ivy2/cache /home/spark/.ivy2/jars &&
+              chmod -R 777 /home/spark/.ivy2 &&
+              /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master"
     environment:
       SPARK_MASTER_HOST: spark-master
     ports:
@@ -94,7 +98,11 @@ services:
   spark-worker:
     image: apache/spark:3.5.1-python3
     container_name: football_spark_worker
-    entrypoint: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+    user: root
+    entrypoint: >
+      bash -c "mkdir -p /home/spark/.ivy2/cache /home/spark/.ivy2/jars &&
+              chmod -R 777 /home/spark/.ivy2 &&
+              /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077"
     environment:
       SPARK_WORKER_MEMORY: 2g
       SPARK_WORKER_CORES: 2

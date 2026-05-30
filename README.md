@@ -176,6 +176,48 @@ python upload_to_bronze.py
 Aller sur http://localhost:8081, activer le DAG `football_market_value_pipeline` et cliquer sur **Trigger DAG ▶**.
 
 ---
+## Ingestion des données
+
+### Pourquoi l'upload est séparé du DAG ?
+
+L'upload vers la zone Bronze (`upload_to_bronze.py`) est 
+volontairement séparé du DAG Airflow pour une raison simple :
+les données sources (Transfermarkt + FIFA 23) proviennent de 
+fichiers statiques Kaggle qui ne changent pas quotidiennement.
+
+Intégrer l'upload dans le DAG signifierait re-uploader 
+les mêmes 6.8 GB de CSV à chaque exécution quotidienne — 
+inutile et coûteux en ressources.
+
+Le DAG vérifie simplement que les fichiers sont présents 
+dans Bronze via `check_data_available` avant de lancer 
+les jobs Spark. Si les fichiers sont absents, le pipeline 
+s'arrête avec un message d'erreur clair.
+
+**En production avec des données dynamiques** (API 
+Transfermarkt temps réel, nouvelles valorisations 
+hebdomadaires), cette tâche serait intégrée dans le DAG 
+comme première étape d'ingestion automatique.
+
+---
+
+### Pourquoi la tâche `pipeline_success` ?
+
+La tâche `pipeline_success` est un point de contrôle final 
+explicite. Elle confirme que toutes les étapes précédentes 
+se sont bien exécutées de bout en bout.
+
+Sans elle, le DAG se terminerait sur `silver_to_gold` sans 
+confirmation explicite du succès global. Avec elle, on a 
+une validation claire dans l'interface Airflow — visible 
+en vert uniquement si tout s'est bien passé.
+
+**En production** elle déclencherait :
+- Une notification email/Slack de confirmation
+- Un log dans un système d'audit
+- Le déclenchement d'autres pipelines en aval
+
+---
 
 ## Pipeline de données
 

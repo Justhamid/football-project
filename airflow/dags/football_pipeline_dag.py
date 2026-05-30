@@ -71,9 +71,9 @@ def check_minio_buckets():
     for bucket in buckets_needed:
         if bucket not in existing:
             s3.create_bucket(Bucket=bucket)
-            logger.info(f"✅ Bucket créé : {bucket}")
+            logger.info(f"Bucket créé : {bucket}")
         else:
-            logger.info(f"✅ Bucket existant : {bucket}")
+            logger.info(f"Bucket existant : {bucket}")
 
     logger.info("Vérification MinIO terminée")
 
@@ -123,7 +123,7 @@ def check_data_available():
             "Vérifie que les CSV ont bien été uploadés dans MinIO."
         )
 
-    logger.info(f"✅ Tous les fichiers requis sont présents ({len(existing_keys)} fichiers au total)")
+    logger.info(f"Tous les fichiers requis sont présents ({len(existing_keys)} fichiers au total)")
 
 check_data_task = PythonOperator(
     task_id="check_data_available",
@@ -163,9 +163,9 @@ def submit_spark_job(script_name: str):
 
     if result.returncode != 0:
         logger.error(result.stderr)
-        raise Exception(f"❌ Spark job {script_name} a échoué :\n{result.stderr}")
+        raise Exception(f"Spark job {script_name} a échoué :\n{result.stderr}")
 
-    logger.info(f"✅ Job {script_name} terminé avec succès")
+    logger.info(f"Job {script_name} terminé avec succès")
 
 bronze_to_silver_task = PythonOperator(
     task_id="bronze_to_silver",
@@ -189,12 +189,12 @@ silver_to_gold_task = PythonOperator(
 def pipeline_success():
     """Logue la fin du pipeline avec un résumé."""
     logger.info("=" * 60)
-    logger.info("🎉 PIPELINE FOOTBALL TERMINÉ AVEC SUCCÈS")
+    logger.info("PIPELINE FOOTBALL TERMINÉ AVEC SUCCÈS")
     logger.info("=" * 60)
     logger.info("Zones mises à jour :")
-    logger.info("  ✅ Bronze → CSV bruts dans MinIO")
-    logger.info("  ✅ Silver → Parquet nettoyés dans MinIO")
-    logger.info("  ✅ Gold   → Tables analytiques dans PostgreSQL")
+    logger.info("  Bronze → CSV bruts dans MinIO")
+    logger.info("  Silver → Parquet nettoyés dans MinIO")
+    logger.info("  Gold   → Tables analytiques dans PostgreSQL")
     logger.info("Tables disponibles dans Metabase :")
     logger.info("  - fact_player_value")
     logger.info("  - agg_value_by_position")

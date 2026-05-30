@@ -65,7 +65,7 @@ def write_postgres(df, table: str):
     df.write \
         .mode("overwrite") \
         .jdbc(PG_URL, table, properties=PG_PROPS)
-    logger.info(f"✅ Table {table} écrite")
+    logger.info(f"Table {table} écrite")
 
 
 # ─────────────────────────────────────────
@@ -80,7 +80,7 @@ competitions = spark.read.parquet(f"{SILVER}/competitions")
 appearances  = spark.read.parquet(f"{SILVER}/appearances")
 fifa         = spark.read.parquet(f"{SILVER}/fifa_players")
 
-logger.info("✅ Tous les Parquet chargés")
+logger.info("Tous les Parquet chargés")
 
 
 # ═══════════════════════════════════════════════════════
@@ -330,7 +330,7 @@ write_postgres(agg_nationality, "agg_value_by_nationality")
 # RÉSUMÉ FINAL
 # ─────────────────────────────────────────
 logger.info("=" * 50)
-logger.info("✅ JOB SILVER → GOLD TERMINÉ")
+logger.info("JOB SILVER → GOLD TERMINÉ")
 logger.info("Tables écrites dans PostgreSQL :")
 logger.info("  - dim_player")
 logger.info("  - dim_club")

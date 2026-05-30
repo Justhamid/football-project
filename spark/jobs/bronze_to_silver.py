@@ -71,7 +71,7 @@ def write_parquet(df, path: str, partition_by: str = None):
         df.write.mode("overwrite").partitionBy(partition_by).parquet(path)
     else:
         df.write.mode("overwrite").parquet(path)
-    logger.info(f"✅ Écrit : {path} ({df.count()} lignes)")
+    logger.info(f"Écrit : {path} ({df.count()} lignes)")
 
 
 # ═══════════════════════════════════════════════════════
@@ -154,7 +154,7 @@ logger.info("=== TRAITEMENT : clubs.csv ===")
 clubs = read_csv(f"{BRONZE}/Transfermarkt/clubs.csv")
 
 clubs_clean = clubs \
-    .dropDuplicates(["club_id"]) \
+    .dropDuplicates(["club_id" ]) \
     .filter(col("club_id").isNotNull()) \
     .withColumn("club_name", trim(col("name"))) \
     .withColumn("domestic_competition_id", trim(col("domestic_competition_id"))) \
@@ -269,7 +269,7 @@ logger.info(f"FIFA players nettoyés : {fifa_clean.count()} lignes")
 # RÉSUMÉ FINAL
 # ─────────────────────────────────────────
 logger.info("=" * 50)
-logger.info("✅ JOB BRONZE → SILVER TERMINÉ")
+logger.info("JOB BRONZE → SILVER TERMINÉ")
 logger.info("Fichiers Parquet écrits dans MinIO/silver/")
 logger.info("=" * 50)
 
