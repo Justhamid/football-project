@@ -78,7 +78,8 @@ services:
     container_name: football_spark_master
     user: root
     entrypoint: >
-      bash -c "mkdir -p /home/spark/.ivy2/cache /home/spark/.ivy2/jars &&
+      bash -c "pip install psycopg2-binary boto3 &&
+              mkdir -p /home/spark/.ivy2/cache /home/spark/.ivy2/jars &&
               chmod -R 777 /home/spark/.ivy2 &&
               /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master"
     environment:
@@ -100,11 +101,12 @@ services:
     container_name: football_spark_worker
     user: root
     entrypoint: >
-      bash -c "mkdir -p /home/spark/.ivy2/cache /home/spark/.ivy2/jars &&
+      bash -c "pip install psycopg2-binary boto3 &&
+              mkdir -p /home/spark/.ivy2/cache /home/spark/.ivy2/jars &&
               chmod -R 777 /home/spark/.ivy2 &&
               /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077"
     environment:
-      SPARK_WORKER_MEMORY: 2g
+      SPARK_WORKER_MEMORY: 3g
       SPARK_WORKER_CORES: 2
     volumes:
       - ./spark/jobs:/opt/spark_jobs

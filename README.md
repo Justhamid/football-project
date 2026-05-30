@@ -109,7 +109,9 @@ football-project/
 │       └── football_pipeline_dag.py  # DAG Airflow (orchestration)
 │
 ├── upload_to_bronze.py               # Script upload CSV → MinIO
+├── init_db.sql                       # Init PostgreSQL : base, tables, rôles
 ├── docker-compose.yml                # Environnement Docker complet
+├── football_pipeline.ipynb           # Notebook de démarrage complet
 ├── requirements.txt                  # Dépendances Python
 └── README.md                         # Documentation
 ```
@@ -224,16 +226,17 @@ en vert uniquement si tout s'est bien passé.
 ### DAG Airflow
 
 ```
-check_minio_buckets → check_data_available → bronze_to_silver → silver_to_gold → pipeline_success
+check_minio_buckets → check_data_available → check_postgres → bronze_to_silver → silver_to_gold → pipeline_success
 ```
 
 | Tâche | Type | Description |
 |-------|------|-------------|
 | `check_minio_buckets` | PythonOperator | Vérifie/crée les buckets MinIO |
 | `check_data_available` | PythonOperator | Vérifie la présence des CSV |
+| `check_postgres` | PythonOperator | Vérifie que PostgreSQL est accessible |
 | `bronze_to_silver` | PythonOperator | Lance le job Spark de nettoyage |
 | `silver_to_gold` | PythonOperator | Lance le job Spark d'agrégation |
-| `pipeline_success` | PythonOperator | Notification de fin |
+| `pipeline_success` | PythonOperator | Compte les lignes et confirme la fin |
 
 ### Job 1 : Bronze → Silver (`bronze_to_silver.py`)
 
@@ -317,7 +320,9 @@ Les dashboards Metabase répondent à la problématique métier :
 | `docker exec` inaccessible depuis Airflow | Montage du socket Docker `/var/run/docker.sock` |
 | `ClassCastException` jointures Spark | Renommage explicite des colonnes avant jointure |
 | Fichier FIFA 23 de 5.3 GB | Limitation à 50,000 lignes avec `.limit()` |
-| Dossier Ivy2 manquant dans Spark | Création manuelle avec permissions root |
+| Dossier Ivy2 manquant dans Spark | Création au démarrage du conteneur via l'entrypoint |
+| `role_spark_etl` ne pouvait pas créer de tables | Ajout de `GRANT CREATE ON SCHEMA public` dans `init_db.sql` |
+| Worker Spark limité à 1 GiB malgré `SPARK_WORKER_MEMORY: 3g` | Passage explicite de `--executor-memory 1g` dans `spark-submit` |
 
 ---
 
