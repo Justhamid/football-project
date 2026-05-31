@@ -157,6 +157,7 @@ services:
   metabase:
     image: metabase/metabase:latest
     container_name: football_metabase
+    restart: always
     ports:
       - "3000:3000"   # Interface web Metabase
     environment:

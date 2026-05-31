@@ -177,6 +177,14 @@ python upload_to_bronze.py
 
 Aller sur http://localhost:8081, activer le DAG `football_market_value_pipeline` et cliquer sur **Trigger DAG ▶**.
 
+### 7. Vérifier que tout fonctionne
+
+Lancer le notebook de vérification :
+```bash
+jupyter notebook football_pipeline.ipynb
+```
+Exécuter toutes les cellules dans l'ordre.
+
 ---
 ## Ingestion des données
 
@@ -220,6 +228,18 @@ en vert uniquement si tout s'est bien passé.
 - Le déclenchement d'autres pipelines en aval
 
 ---
+## Sécurité
+
+### Principe du moindre privilège
+
+Deux rôles PostgreSQL distincts :
+
+| Rôle | Droits | Utilisé par |
+|------|--------|-------------|
+| `role_spark_etl` | SELECT, INSERT, UPDATE, DELETE | Apache Spark |
+| `role_metabase_read` | SELECT uniquement | Metabase |
+
+→ Si Metabase est compromis, les données ne peuvent pas être modifiées.
 
 ## Pipeline de données
 
